@@ -41,10 +41,30 @@ class UrbanSoundDataset(Dataset):
         # We want to turn the audio samples into mono if needed
         signal = self._mix_down_if_necessary(signal)
 
+        signal = self._cut_if_necessary(signal)
+        signal = self._right_pad_if_necessary(signal)
+
         # Performing Mel Spectrogram transformation here
         signal = self.transformation(signal)
 
         return signal, label
+    
+    # If the signal has more samples than I expect, then I want to cut the signal
+    def _cut_if_necessary(self, signal):
+        # signal -> Tensor -> (1, num_samples) -> (1, 50000) -> (1, 22050)
+        if signal.shape[1] > self.num_samples:
+            signal = signal[:, :self.num_samples]
+        return signal
+
+    def _right_pad_if_necessary(self, signal):
+        length_signal = signal.shape[1]
+        if length_signal < self.num_samples:
+            # [1, 1, 1] -> [1, 1, 1, 0, 0]
+            num_missing_samples = self.num_samples - length_signal
+            last_dim_padding = (0, num_missing_samples)
+            signal = torch.nn.functional.pad(signal, last_dim_padding)
+        return signal
+        
     
     def _resample_if_necessary(self, signal, sr):
         if sr != self.target_sample_rate:
@@ -89,4 +109,4 @@ if __name__ == "__main__":
 
     print(f"Number of samples: {len(usd)}")
 
-    signal, label = usd[0]
+    signal, label = usd[1]
