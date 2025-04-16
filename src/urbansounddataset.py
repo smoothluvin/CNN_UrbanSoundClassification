@@ -2,10 +2,7 @@ from torch.utils.data import Dataset
 import pandas as pd
 import torch
 import torchaudio
-import soundfile
 import os
-
-torchaudio.set_audio_backend("soundfile")
 
 class UrbanSoundDataset(Dataset):
 
@@ -15,10 +12,12 @@ class UrbanSoundDataset(Dataset):
                  audio_dir, 
                  transformation, 
                  target_sample_rate, 
-                 num_samples):
+                 num_samples,
+                 device):
         self.annotations = pd.read_csv(annotations_file)
         self.audio_dir = audio_dir
-        self.transformation = transformation
+        self.device = device
+        self.transformation = transformation.to(device)
         self.target_sample_rate = target_sample_rate
         self.num_samples = num_samples
 
@@ -33,7 +32,7 @@ class UrbanSoundDataset(Dataset):
         audio_sample_path = self._get_audio_sample_path(index)
         label = self._get_audio_sample_label(index)
         signal, sr = torchaudio.load(audio_sample_path)
-        # signal -> (num_channels, samples) -> (2, 16000) -> (1, 16000) Turning stereo to mono
+        signal = signal.to(self.device)
 
         # Resampling the loaded audio to make sure everything is uniform
         signal = self._resample_if_necessary(signal, sr)
@@ -41,7 +40,10 @@ class UrbanSoundDataset(Dataset):
         # We want to turn the audio samples into mono if needed
         signal = self._mix_down_if_necessary(signal)
 
+        # Cutting the length of signals that are too long
         signal = self._cut_if_necessary(signal)
+
+        # Padding the signal with 0s at the end of the signal to make sure the signal reaches the correct length
         signal = self._right_pad_if_necessary(signal)
 
         # Performing Mel Spectrogram transformation here
@@ -68,7 +70,7 @@ class UrbanSoundDataset(Dataset):
     
     def _resample_if_necessary(self, signal, sr):
         if sr != self.target_sample_rate:
-            resampler = torchaudio.transforms.Resample(sr, self.target_sample_rate)
+            resampler = torchaudio.transforms.Resample(sr, self.target_sample_rate).to(self.device)
             signal = resampler(signal)
         return signal
     
@@ -92,6 +94,14 @@ if __name__ == "__main__":
     SAMPLE_RATE = 22050
     NUM_SAMPLES = 22050
 
+    # Using GPU if available
+    if torch.cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
+    print(f"Using device: {device}")
+
+
     # Creating a Mel Spectrogram Transformation
     # Documentation for torchaudio.transforms.MelSpectrogram: https://pytorch.org/audio/main/generated/torchaudio.transforms.MelSpectrogram.html
     mel_spectrogram = torchaudio.transforms.MelSpectrogram(
@@ -105,7 +115,8 @@ if __name__ == "__main__":
                             AUDIO_DIR, 
                             mel_spectrogram, 
                             SAMPLE_RATE, 
-                            NUM_SAMPLES)
+                            NUM_SAMPLES,
+                            device)
 
     print(f"Number of samples: {len(usd)}")
 
