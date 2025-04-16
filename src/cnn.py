@@ -1,6 +1,7 @@
 from torch import nn
+from torchsummary import summary
 
-class CNNNetwork(nn.module):
+class CNNNetwork(nn.Module):
 
     # Constructor
     def __init__(self):
@@ -17,7 +18,7 @@ class CNNNetwork(nn.module):
             ),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size = 2)
-        ),
+        )
         self.conv2 = nn.Sequential(
             nn.Conv2d(
                 # The in channels for each subsequent layer will be equal to the output of the previous layer
@@ -29,7 +30,7 @@ class CNNNetwork(nn.module):
             ),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size = 2)
-        ),
+        )
         self.conv3 = nn.Sequential(
             nn.Conv2d(
                 # The in channels for each subsequent layer will be equal to the output of the previous layer
@@ -41,7 +42,7 @@ class CNNNetwork(nn.module):
             ),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size = 2)
-        ),
+        )
         self.conv4 = nn.Sequential(
             nn.Conv2d(
                 # The in channels for each subsequent layer will be equal to the output of the previous layer
@@ -74,3 +75,8 @@ class CNNNetwork(nn.module):
         logits = self.linear(x)
         predictions = self.softmax(logits)
         return predictions
+    
+if __name__ == "__main__":
+    cnn = CNNNetwork()
+    # To get the summary, we pass in the model and the shape of the mel spectrogram
+    summary(cnn.cuda(), (1, 64, 44))
