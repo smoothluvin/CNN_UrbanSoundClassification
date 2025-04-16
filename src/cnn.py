@@ -61,3 +61,16 @@ class CNNNetwork(nn.module):
 
         # Softmax to normalize the result across all the different classes
         self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, input_data):
+        # Passing the data from one layer to the next
+        x = self.conv1(input_data)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+
+        # The result of the last conv layer goes through the flatten layer next
+        x = self.flatten(x)
+        logits = self.linear(x)
+        predictions = self.softmax(logits)
+        return predictions
