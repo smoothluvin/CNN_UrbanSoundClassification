@@ -3,3 +3,9 @@ venv/
 
 # Datasets
 data/
+
+# Models
+models/
+
+# PyCache
+src/__pycache__/
